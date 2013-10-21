@@ -1,17 +1,13 @@
-package controllers
+package br.com.sofist.controllers
 
-import play.api._
 import play.api.mvc._
 import play.api.libs.json._
 import scala.concurrent.Future
 import play.modules.reactivemongo.MongoController
 import play.modules.reactivemongo.json.collection.JSONCollection
 import reactivemongo.api._
-import models.{Feed, User}
-import models.JsonFormats._
-import scala.collection.mutable.{ListBuffer, ArrayBuffer}
-import play.api.data.validation.ValidationError
-import play.libs.F.Tuple
+import scala.collection.mutable.ArrayBuffer
+import br.com.sofist.models.domain.{UserRepository, User, Feed}
 
 object Application extends Controller with MongoController {
 
@@ -73,7 +69,8 @@ object Application extends Controller with MongoController {
                         age = age.get,
                         feeds = feeds
                     )
-                    val futureResult = collection.insert(user)
+
+                    val futureResult = UserRepository.save(user)
                     Async {
                         futureResult.map(_ => Ok)
                     }
@@ -87,17 +84,14 @@ object Application extends Controller with MongoController {
             feedJs <- feedsJs;
             name = (feedJs \ "name").validate[String].map{s: String => s}.recoverTotal{jsError: JsError=> ""};
             url = (feedJs \ "url").validate[String].map{s: String => s}.recoverTotal{jsError: JsError=> ""}
-        ) yield Feed(name, url)
+        ) yield Feed(name = name, url = url)
         feeds.toList
     }
 
     def findUserFeedByName(name: String) = Action {
         Async {
-            val cursor: Cursor[User] = collection.find(Json.obj("firstName" -> name)).
-                sort(Json.obj("created" -> -1)).cursor[User]
-
             // gather all the JsObjects in a list
-            val futureUsersList: Future[List[User]] = cursor.toList
+            val futureUsersList = UserRepository.list()
 
             // everything's ok! Let's reply with the array
             futureUsersList.map {users =>
