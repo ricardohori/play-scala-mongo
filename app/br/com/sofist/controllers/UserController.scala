@@ -2,16 +2,14 @@ package br.com.sofist.controllers
 
 import play.api.mvc._
 import play.api.libs.json._
-import scala.concurrent.Future
-import play.modules.reactivemongo.MongoController
-import play.modules.reactivemongo.json.collection.JSONCollection
-import reactivemongo.api._
 import scala.collection.mutable.ArrayBuffer
-import br.com.sofist.models.domain.{UserRepository, User, Feed}
+import br.com.sofist.models.user.{UserRepository, User, Feed}
+import br.com.sofist.infrastructure.persistence.mongo.UserRepositoryMongo
+import scala.concurrent.ExecutionContext.Implicits.global
 
-object Application extends Controller with MongoController {
+object UserController extends Controller {
 
-    def collection: JSONCollection = db.collection[JSONCollection]("userFeeds")
+    def userRepository: UserRepository[Serializable] = new UserRepositoryMongo
 
     /**
      * JSON EXEMPLO:
@@ -70,7 +68,7 @@ object Application extends Controller with MongoController {
                         feeds = feeds
                     )
 
-                    val futureResult = UserRepository.save(user)
+                    val futureResult = userRepository.save(user)
                     Async {
                         futureResult.map(_ => Ok)
                     }
@@ -91,7 +89,7 @@ object Application extends Controller with MongoController {
     def findUserFeedByName(name: String) = Action {
         Async {
             // gather all the JsObjects in a list
-            val futureUsersList = UserRepository.list()
+            val futureUsersList = userRepository.list()
 
             // everything's ok! Let's reply with the array
             futureUsersList.map {users =>
