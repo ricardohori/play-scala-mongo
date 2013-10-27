@@ -1,11 +1,11 @@
 package br.com.sofist.controllers
 
 import play.api.mvc._
-import play.api.libs.json._
-import scala.collection.mutable.ArrayBuffer
 import br.com.sofist.models.user.{UserRepository, User, Feed}
 import br.com.sofist.infrastructure.persistence.mongo.UserRepositoryMongo
 import scala.concurrent.ExecutionContext.Implicits.global
+import br.com.sofist.services.interfaces.UserDTO
+import UserDTO._
 
 object UserController extends Controller {
 
@@ -33,57 +33,23 @@ object UserController extends Controller {
         request.body.asJson match {
             case None => Status(400)
             case Some(user) => {
-                val errors = new ArrayBuffer[JsError]
-
-                // val firstName = (user \ "firstName").as[String]
-                val firstName: Option[String] = (user \ "firstName").validate[String].map{s: String => Some(s)}.recoverTotal{jsError: JsError=>
-                    errors += jsError
-                    None
-                }
-
-                // val lastName = (user \ "lastName").as[String]
-                val lastName: Option[String] = (user \ "lastName").validate[String].map{s: String => Some(s)}.recoverTotal{jsError: JsError=>
-                    errors += jsError
-                    None
-                }
-
-                // val age = (age \ "lastName").as[Int]
-                val age: Option[Int] = (user \ "age").validate[Int].map{i: Int => Some(i)}.recoverTotal{jsError: JsError=>
-                    errors += jsError
-                    None
-                }
-
-                val feeds = (user \ "feeds").asOpt[Array[JsValue]] match {
-                    case None => List()
-                    case Some(feedsJs) => createFeedsFromJs(feedsJs)
-                }
-
-                if(errors.size > 0){
-                    Status(400)
-                }else{
+                user.validate[UserDTO].map{userDto =>
                     val user = User(
-                        firstName = firstName.get,
-                        lastName = lastName.get,
-                        age = age.get,
-                        feeds = feeds
+                        firstName = userDto.firstName,
+                        lastName = userDto.lastName,
+                        age = userDto.age,
+                        feeds = userDto.feeds.map{feedDto => Feed(feedDto.name, feedDto.url)}
                     )
 
                     val futureResult = userRepository.save(user)
                     Async {
-                        futureResult.map(_ => Ok)
+                        futureResult.map(result => Ok)
                     }
+                }.recoverTotal{error =>
+                    Status(400)
                 }
             }
         }
-    }
-
-    private def createFeedsFromJs(feedsJs: Array[JsValue]): List[Feed] = {
-        val feeds = for(
-            feedJs <- feedsJs;
-            name = (feedJs \ "name").validate[String].map{s: String => s}.recoverTotal{jsError: JsError=> ""};
-            url = (feedJs \ "url").validate[String].map{s: String => s}.recoverTotal{jsError: JsError=> ""}
-        ) yield Feed(name = name, url = url)
-        feeds.toList
     }
 
     def findUserFeedByName(name: String) = Action {

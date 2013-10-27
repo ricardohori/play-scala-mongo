@@ -6,7 +6,7 @@ import reactivemongo.core.commands.LastError
 import br.com.sofist.models.user.{User, UserRepository}
 import scala.concurrent.ExecutionContext.Implicits.global
 import reactivemongo.api.collections.default.BSONCollection
-import br.com.sofist.models.user.User._
+import UserMapping._
 
 /**
  * Created with IntelliJ IDEA.
@@ -42,3 +42,4 @@ class UserRepositoryMongo extends UserRepository[Serializable] with MongoReposit
         collection.save(domain)
     }
 }
+
