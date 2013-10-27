@@ -1,6 +1,7 @@
 package br.com.sofist.models.user
 
 import br.com.sofist.infrastructure.persistence.AsyncCrudRepository
+import scala.concurrent.Future
 
 /**
  * Created with IntelliJ IDEA.
@@ -11,4 +12,8 @@ import br.com.sofist.infrastructure.persistence.AsyncCrudRepository
  */
 trait UserRepository[ID <: Serializable] extends AsyncCrudRepository[ID, User]{
 
+
+    def findUserByName(name: String): Future[Option[User]]
+
+    def deleteUserByName(name: String): Future[Throwable]
 }

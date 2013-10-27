@@ -8,7 +8,7 @@ package br.com.sofist.services.interfaces
  * Time: 7:53 PM
  * To change this template use File | Settings | File Templates.
  */
-case class UserDTO(age: Int, firstName: String, lastName: String, feeds: List[FeedDTO])
+case class UserDTO(id: Option[String] = None, age: Int, firstName: String, lastName: String, feeds: List[FeedDTO])
 case class FeedDTO(name: String, url: String)
 
 object UserDTO {

@@ -6,7 +6,7 @@ import reactivemongo.core.commands.LastError
 import br.com.sofist.models.user.{User, UserRepository}
 import scala.concurrent.ExecutionContext.Implicits.global
 import reactivemongo.api.collections.default.BSONCollection
-import UserMapping._
+import UserMapperMongo._
 
 /**
  * Created with IntelliJ IDEA.
@@ -40,6 +40,14 @@ class UserRepositoryMongo extends UserRepository[Serializable] with MongoReposit
 
     override def save(domain: User): Future[LastError] = {
         collection.save(domain)
+    }
+
+    override def findUserByName(firstName: String): Future[Option[User]] = {
+        collection.find(BSONDocument("firstName" -> firstName)).one[User]
+    }
+
+    override def deleteUserByName(firstName: String): Future[Throwable] = {
+        collection.remove(BSONDocument("firstName" -> firstName))
     }
 }
 

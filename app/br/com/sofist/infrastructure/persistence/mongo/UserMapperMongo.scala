@@ -10,7 +10,8 @@ import br.com.sofist.models.user.{User, Feed}
  * Time: 12:24 AM
  * To change this template use File | Settings | File Templates.
  */
-object UserMapping{
+object UserMapperMongo{
+
     implicit object FeedBSONReader extends BSONDocumentReader[Feed] {
         def read(doc: BSONDocument): Feed =
             Feed(

@@ -1,15 +1,15 @@
 package br.com.sofist.controllers
 
 import play.api.mvc._
-import br.com.sofist.models.user.{UserRepository, User, Feed}
-import br.com.sofist.infrastructure.persistence.mongo.UserRepositoryMongo
 import scala.concurrent.ExecutionContext.Implicits.global
 import br.com.sofist.services.interfaces.UserDTO
 import UserDTO._
+import br.com.sofist.services.UserService
+import com.google.inject.{Inject, Singleton}
+import play.api.libs.json.{JsString, Json}
 
-object UserController extends Controller {
-
-    def userRepository: UserRepository[Serializable] = new UserRepositoryMongo
+@Singleton
+class UserController @Inject() (userService: UserService) extends Controller {
 
     /**
      * JSON EXEMPLO:
@@ -19,11 +19,11 @@ object UserController extends Controller {
             "age":34,
             "feeds":[
                 {
-                    "name":"Scala json!",
+                    "firstName":"Scala json!",
                     "url":"scala.json"
                 },
                 {
-                    "name":"Scala bson!",
+                    "firstName":"Scala bson!",
                     "url":"scala.bson"
                 }
             ]
@@ -34,14 +34,7 @@ object UserController extends Controller {
             case None => Status(400)
             case Some(user) => {
                 user.validate[UserDTO].map{userDto =>
-                    val user = User(
-                        firstName = userDto.firstName,
-                        lastName = userDto.lastName,
-                        age = userDto.age,
-                        feeds = userDto.feeds.map{feedDto => Feed(feedDto.name, feedDto.url)}
-                    )
-
-                    val futureResult = userRepository.save(user)
+                    val futureResult = userService.saveUser(userDto)
                     Async {
                         futureResult.map(result => Ok)
                     }
@@ -52,14 +45,50 @@ object UserController extends Controller {
         }
     }
 
-    def findUserFeedByName(name: String) = Action {
+    def deleteUserFeed = Action { request=>
+        request.body.asJson match {
+            case None => Status(400)
+            case Some(json) => {
+                (json \ "firstName").validate[String].map{firstName =>
+                    val futureResult = userService.deleteUser(firstName)
+                    Async{
+                        futureResult.map(result => Ok )
+                    }
+                }.recoverTotal{error =>
+                    Status(400)
+                }
+            }
+        }
+    }
+
+    def findUserFeed = Action { request =>
+        request.body.asJson match {
+            case None => Status(400)
+            case Some(json) => {
+                (json \ "firstName").validate[String].map{firstName =>
+                    val futureUser = userService.findUser(firstName)
+                    Async{
+                        futureUser.map{user =>
+                            Ok(
+                                if(user.isDefined) Json.toJson(user.get) else JsString("User not found!")
+                            )
+                        }
+                    }
+                }.recoverTotal{error =>
+                    Status(400)
+                }
+            }
+        }
+    }
+
+    def listUsers = Action {
         Async {
             // gather all the JsObjects in a list
-            val futureUsersList = userRepository.list()
+            val futureUsersList = userService.listUsers()
 
             // everything's ok! Let's reply with the array
             futureUsersList.map {users =>
-                    Ok(users.toString)
+                Ok(Json.toJson(users))
             }
         }
     }
